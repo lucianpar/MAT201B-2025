@@ -75,7 +75,7 @@ class MyApp : public App {
 
 
         
-        auto image = Image("../testImage.jpg");
+        auto image = Image("../testIMG.jpeg");
         if (image.width() == 0) {
             std::cout << "Image not found" << std::endl;
             exit(1);
@@ -133,6 +133,7 @@ class MyApp : public App {
                 // fill in rgb, mine, and hsl meshes
             }
         }
+        HSV
         currentMesh = mesh2;
         meshSize = mesh1.vertices().size();
         targetMesh = mesh2;
