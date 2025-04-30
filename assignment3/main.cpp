@@ -4,6 +4,7 @@
 #include "al/math/al_Random.hpp"
 #include "al/math/al_StdRandom.hpp"
 #include "al/math/al_Vec.hpp"
+#include "al/ui/al_Parameter.hpp"
 #include <_stdlib.h>
 
 using namespace al;
@@ -17,14 +18,17 @@ using namespace std;
 // 1 gives them a random force
 
 
+//note to self -- add legs
+
 Vec3f randomVec3f(float scale) {
   return Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()) * scale;
 }
 
 struct AlloApp : App {
-  Parameter timeStep{"/timeStep", "", 0.1, 0.01, 0.6};
+  Parameter timeStep{"/timeStep", "", 1.0, 0.01, 4.0};
   Parameter clusterMargin{"/clusterMargin", "", 4.0, 1.0, 15.0};
   Parameter spaceBoundary{"/spaceBoundary", "", 15.0, 10.0, 30.0};
+  ParameterBool eating{"/eating on / off", "", 0, 0, 1};
 
   Light light;
   Material material;  // Necessary for specular highlights
@@ -32,9 +36,10 @@ struct AlloApp : App {
   Mesh mesh;
   Mesh boundary;
   Mesh bigGuyMesh;
-  int numAgents = 150;
+  int numAgents = 60;
   int invertDir = 1;//key click 1
   int addForce = 0;
+  float fearColorReact = 0.0;
   
 
   // size, color, species, sex, age, etc.
@@ -47,6 +52,7 @@ struct AlloApp : App {
     gui.add(timeStep);
     gui.add(clusterMargin);
     gui.add(spaceBoundary);
+    gui.add(eating);
   }
 
   void onCreate() override {
@@ -61,6 +67,9 @@ struct AlloApp : App {
     nav().pos(0, 0, 0);
     addSphere(mesh, 0.5, 50, 50);
     mesh.primitive(Mesh::POINTS);
+    //cube adds sort of particle surrounding
+    //addCube(mesh, false, 2.0);
+    //mesh.primitive(Mesh::POINTS);
     mesh.scale(1.0,0.7,0.9);
     
      
@@ -107,6 +116,7 @@ struct AlloApp : App {
   //Vec3f food;
   double time = 0;
   void onAnimate(double dt) override {
+    fearColorReact = 0;
     if (time > 7) {
       time -= 7;
       //for spawning behavior
@@ -141,11 +151,17 @@ struct AlloApp : App {
       }
       }
       
-      Vec3f clusterCenter = clusterSum / nInCluster;
+      Vec3f clusterCenter =(clusterSum / nInCluster);
       for (int b = 0; b < bigAgent.size(); ++b){
         if ( (bigAgent[b].pos()-agent[i].pos()).mag() < 2.0f){
           scared = 6;
           run  =-1;
+          
+          if (eating == 1){
+          mesh.scale( 0.995);
+          bigGuyMesh.scale(1.005);
+          fearColorReact = 0.7;
+          };
           //std::cout << "scared" << std::endl;
         }
       }
@@ -160,7 +176,7 @@ struct AlloApp : App {
          bigAgent[i].faceToward(bigAgent[i].uf()*-1.0, 0.1);
       }
       // agent[i].faceToward(clusterCenter*invertDir*run, 0.03);
-      agent[i].step(dt);
+      agent[i].step(dt*timeStep);
 
      
     }
@@ -170,7 +186,7 @@ struct AlloApp : App {
 
       bigAgent[b].moveF(2);
       bigAgent[b].faceToward(agent[int((numAgents-1)/b)].pos(), 0.04);
-      bigAgent[b].step(dt);
+      bigAgent[b].step(dt*timeStep);
       }
   }
 
@@ -209,7 +225,7 @@ struct AlloApp : App {
 
     for (int i = 0; i < agent.size(); ++i) {
       g.pushMatrix();
-      g.color(1.0,0.0,0.5);
+      g.color(1.0,sin(0.0+fearColorReact),0.5);
       g.translate(agent[i].pos());
       g.rotate(agent[i].quat());
       g.draw(mesh);
