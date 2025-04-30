@@ -24,6 +24,7 @@ Vec3f randomVec3f(float scale) {
 struct AlloApp : App {
   Parameter timeStep{"/timeStep", "", 0.1, 0.01, 0.6};
   Parameter clusterMargin{"/clusterMargin", "", 4.0, 1.0, 15.0};
+  Parameter spaceBoundary{"/spaceBoundary", "", 15.0, 10.0, 30.0};
 
   Light light;
   Material material;  // Necessary for specular highlights
@@ -31,9 +32,10 @@ struct AlloApp : App {
   Mesh mesh;
   Mesh boundary;
   Mesh bigGuyMesh;
-  int numAgents = 10;
+  int numAgents = 150;
   int invertDir = 1;//key click 1
   int addForce = 0;
+  
 
   // size, color, species, sex, age, etc.
   std::vector<Nav> agent;
@@ -44,6 +46,7 @@ struct AlloApp : App {
     auto &gui = GUIdomain->newGUI();
     gui.add(timeStep);
     gui.add(clusterMargin);
+    gui.add(spaceBoundary);
   }
 
   void onCreate() override {
@@ -58,8 +61,6 @@ struct AlloApp : App {
     nav().pos(0, 0, 0);
     addSphere(mesh, 0.5, 50, 50);
     mesh.primitive(Mesh::POINTS);
-    //float size= 
-    //mesh.scale(0.5+rnd::uniform(1.5));
     mesh.scale(1.0,0.7,0.9);
     
      
@@ -121,7 +122,7 @@ struct AlloApp : App {
       bool bigInSphere = true;
       int scared = 0;
       int run = 1;
-      if (agent[i].pos().mag() >= 15.0) {in_Sphere = false;}; 
+      if (agent[i].pos().mag() >= spaceBoundary) {in_Sphere = false;}; 
     
 
       
@@ -154,6 +155,7 @@ struct AlloApp : App {
       if (in_Sphere == false){
          agent[i].faceToward(agent[i].uf()*-1.0, 0.1);
       }
+      //this condition isnt actuall set  anywhere but thats fine
       if (bigInSphere == false){
          bigAgent[i].faceToward(bigAgent[i].uf()*-1.0, 0.1);
       }
@@ -192,7 +194,8 @@ struct AlloApp : App {
   void onDraw(Graphics &g) override {
     g.clear(0.0, 0.2, 0.5);
     g.depthTesting(true);
-    g.draw(boundary);
+    //no need to draw boundary anymore
+    //g.draw(boundary);
     g.lighting(true);
     light.globalAmbient(RGB(0.5, sin(1.0), 1.0));
     light.ambient(RGB(0.5, sin(1.0), 1.0));
