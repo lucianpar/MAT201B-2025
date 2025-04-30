@@ -2,6 +2,7 @@
 #include "al/app/al_GUIDomain.hpp"
 #include "al/graphics/al_Shapes.hpp"
 #include "al/math/al_Random.hpp"
+#include "al/math/al_StdRandom.hpp"
 #include "al/math/al_Vec.hpp"
 #include <_stdlib.h>
 
@@ -10,6 +11,11 @@ using namespace al;
 #include <fstream>
 #include <vector>
 using namespace std;
+
+// KEY CLICK COMMANDS:
+// 0 pulls flocks to center
+// 1 gives them a random force
+
 
 Vec3f randomVec3f(float scale) {
   return Vec3f(rnd::uniformS(), rnd::uniformS(), rnd::uniformS()) * scale;
@@ -25,7 +31,7 @@ struct AlloApp : App {
   Mesh mesh;
   Mesh boundary;
   Mesh bigGuyMesh;
-  int numAgents = 100;
+  int numAgents = 10;
   int invertDir = 1;//key click 1
   int addForce = 0;
 
@@ -42,17 +48,14 @@ struct AlloApp : App {
 
   void onCreate() override {
     
+    //visible boundary
     addSphere(boundary, 15, 100);
     boundary.primitive((Mesh:: POINTS));
     boundary.color(1.0, 1.0, 1.0);
-    // for (int i = 0; i < boundary.vertices().size(); ++i){
-    //   boundary.vertices()[i].color()
-    // }
     
-
+    
+    //jellyfish bodies
     nav().pos(0, 0, 0);
-    // addSphere(mesh);
-    // mesh.translate(0, 0, -0.1);
     addSphere(mesh, 0.5, 50, 50);
     mesh.primitive(Mesh::POINTS);
     //float size= 
@@ -65,11 +68,14 @@ struct AlloApp : App {
 
     mesh.generateNormals();
 
-    addSphere(bigGuyMesh, 2.0, 50, 50);
+    //big jellies
+    addSphere(bigGuyMesh, 1.7, 50, 50);
     bigGuyMesh.primitive(Mesh::POINTS);
     //float size= 
     //mesh.scale(0.5+rnd::uniform(1.5));
     bigGuyMesh.scale(1.0,0.7,0.9);
+
+
     light.pos(0, 10, 10);
 
      for (int b = 0; b < 4; ++b) {
@@ -112,17 +118,14 @@ struct AlloApp : App {
     for (int i = 0; i < agent.size(); ++i) {
       //scale(aguent[i], 1.2);
       bool in_Sphere = true;
+      bool bigInSphere = true;
+      int scared = 0;
+      int run = 1;
       if (agent[i].pos().mag() >= 15.0) {in_Sphere = false;}; 
     
 
       
-      agent[i].moveF(10+addForce);
-      if (in_Sphere == false){
-        //int index = rnd::uniformS();
-        //switch direction if encounter boundary
-         agent[i].faceToward(agent[i].uf()*-1.0, 0.1);
-         //uf handles front of nav position
-      }
+      
       //std::vector<Vec3f> neighbors;
       Vec3f clusterSum;
       int nInCluster = 0;
@@ -136,29 +139,49 @@ struct AlloApp : App {
 
       }
       }
-      Vec3f clusterCenter = clusterSum / nInCluster;
-      agent[i].faceToward(clusterCenter*invertDir, 0.03);
-      agent[i].step(dt);
-    }
-
-    ///////
-    // for (int i = 0; i < agent.size(); ++i) {
       
-    // }
+      Vec3f clusterCenter = clusterSum / nInCluster;
+      for (int b = 0; b < bigAgent.size(); ++b){
+        if ( (bigAgent[b].pos()-agent[i].pos()).mag() < 2.0f){
+          scared = 6;
+          run  =-1;
+          //std::cout << "scared" << std::endl;
+        }
+      }
+      agent[i].faceToward(clusterCenter*invertDir*run, 0.03);
+      agent[i].moveF(10+addForce+scared);
+      //agent[i].faceToward(agent[i].uf()*run);
+      if (in_Sphere == false){
+         agent[i].faceToward(agent[i].uf()*-1.0, 0.1);
+      }
+      if (bigInSphere == false){
+         bigAgent[i].faceToward(bigAgent[i].uf()*-1.0, 0.1);
+      }
+      // agent[i].faceToward(clusterCenter*invertDir*run, 0.03);
+      agent[i].step(dt);
+
+     
+    }
+     //for big agent movement
+      for (int b = 0; b < bigAgent.size(); ++b) {
+        //add hunger speed param?
+
+      bigAgent[b].moveF(2);
+      bigAgent[b].faceToward(agent[int((numAgents-1)/b)].pos(), 0.04);
+      bigAgent[b].step(dt);
+      }
   }
 
   bool onKeyDown(const Keyboard &k) override {
-    if (k.key() == '1') {
+    if (k.key() == '0') {
       invertDir = -1;
       //behavior -- go to center
     }
     else{
       invertDir = 1;
     }
-    // if (k.key() == '0') {
-    //   invertDir = 1;
-    // }
-    if (k.key() == '3') {
+
+    if (k.key() == '1') {
       addForce = 5;
     }
     else{
